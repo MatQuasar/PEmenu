@@ -12,7 +12,15 @@ IDM_EXIT  = 102
 IDM_ABOUT = 901
 IDD_MAIN = 100
 IDC_FILE=200
-IDC_TYPE=201
+IDC_BITNESS=201
+IDC_SUBSYSTEM=202
+
+PE32 = 0x10b
+PE64 = 0x20b
+IMAGE_SUBSYSTEM_WINDOWS_GUI = 2
+IMAGE_SUBSYSTEM_WINDOWS_CUI = 3
+Offset_MagicNumber = 0x98 - 0x80
+Offset_Subsystem = 0xDC - 0x80
 
 section '.text' code readable executable
 
@@ -50,8 +58,77 @@ proc DialogProc hwnd,wmsg,wparam,lparam
         or      eax, eax
         jz      .processed
 
+        invoke  CreateFile, _filename, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0
+        mov     dword [_handle], eax
+        cmp     eax, INVALID_HANDLE_VALUE
+        je      .err1
+
+        invoke  ReadFile, dword [_handle], _MZ_ID_r, 2, _dummy, 0
+        movzx   ebx, word [_MZ_ID_r]
+        cmp     bx, word [_MZ_ID]
+        jnz     .err4
+        invoke  SetFilePointer, dword [_handle], 0x3C, 0, FILE_BEGIN
+        invoke  ReadFile, dword [_handle], _PE_start, 4, _dummy, 0
+        invoke  SetFilePointer, dword [_handle], dword [_PE_start], 0, FILE_BEGIN
+        invoke  ReadFile, dword [_handle], _PE_ID_r, 4, _dummy, 0
+        mov     ebx, dword [_PE_ID_r]
+        cmp     ebx, dword [_PE_ID]
+        jnz     .err5
+        mov     ebx, dword [_PE_start]
+        add     ebx, Offset_MagicNumber
+        mov     [_offset], ebx
+        invoke  SetFilePointer, dword [_handle], dword [_offset] , 0, FILE_BEGIN
+        invoke  ReadFile, dword [_handle], _magic, 2, _dummy, 0
+        movzx   ebx, word [_magic]
+        cmp     ebx, PE32
+        jz      .isPE32
+        invoke  SetDlgItemText,[hwnd],IDC_BITNESS,_msg7
+        jmp     .continue
+  .isPE32:
+        invoke  SetDlgItemText,[hwnd],IDC_BITNESS,_msg6
+  .continue:
+        mov     ebx, dword [_PE_start]
+        add     ebx, Offset_Subsystem
+        mov     [_offset], ebx
+        invoke  SetFilePointer, dword [_handle], dword [_offset] , 0, FILE_BEGIN
+        invoke  ReadFile, dword [_handle], _subsystem, 2, _dummy, 0
+        movzx   ebx, word [_subsystem]
+        cmp     ebx, IMAGE_SUBSYSTEM_WINDOWS_CUI
+        jz      .isCUI
+        cmp     ebx, IMAGE_SUBSYSTEM_WINDOWS_GUI
+        jz      .isGUI
+        invoke  SetDlgItemText,[hwnd],IDC_SUBSYSTEM,_msg10
+        jmp     .done
+  .isCUI:
+        invoke  SetDlgItemText,[hwnd],IDC_SUBSYSTEM,_msg8
+        jmp     .done
+  .isGUI:
+        invoke  SetDlgItemText,[hwnd],IDC_SUBSYSTEM,_msg9
+  .done:
+        invoke  CloseHandle, dword [_handle]
+        jmp     .quit
+  .err0:
+        invoke  MessageBox,[hwnd],_error_text,_about_title,MB_OK
+        jmp     .quit
+  .err1:
+;        invoke  WriteFile, dword [_stdout], _msg1, _msglen1, _dummy, 0
+        jmp     .quit
+  .err2:
+;        invoke  WriteFile, dword [_stdout], _msg2, _msglen2, _dummy, 0
+        jmp     .quit
+  .err4:
+        invoke  CloseHandle, dword [_handle]
+        invoke  SetDlgItemText,[hwnd],IDC_BITNESS,_msg4
+        invoke  SetDlgItemText,[hwnd],IDC_SUBSYSTEM,_msg4
+        jmp     .quit
+  .err5:
+        invoke  CloseHandle, dword [_handle]
+        invoke  SetDlgItemText,[hwnd],IDC_BITNESS,_msg5
+        invoke  SetDlgItemText,[hwnd],IDC_SUBSYSTEM,_msg5
+        jmp     .quit
+
+  .quit:
         invoke  SetDlgItemText,[hwnd],IDC_FILE,_filename
-        ;invoke  SetDlgItemText,[hwnd],IDC_TYPE,_number
         jmp     .processed
 
       .about:
@@ -84,10 +161,29 @@ section '.data' data readable writeable
   _ofn          OPENFILENAME
   _filter       db  'Executables (exe, dll, sys, ocx, scr)',0
                 db  '*.exe;*.dll;*.sys;*.ocx;*.scr',0,0
-  _filename     rb  2048
+  _subsystem    dd ?
+  _handle       dd ?
+  _dummy        dd ?
+  _offset       dd 0
+  _PE_start     dd ?
+  _PE_ID_r      rb 4
+  _PE_ID        db 'P','E',0,0
+  _MZ_ID_r      rb 2
+  _MZ_ID        db 'M','Z'
+  _magic        dw ?
 
-  _about_title TCHAR 'PEmenu',0
-  _about_text TCHAR 'This is a GUI version of PEbasic developed by MatQuasar (aka fliermate) - Apr 2025',0
+  _msg4         db 'Invalid executable file.',0
+  _msg5         db 'PE header not found.',0
+  _msg6         db '32-bit',0
+  _msg7         db '64-bit',0
+  _msg8         db 'Console App',0
+  _msg9         db 'GUI App',0
+  _msg10        db 'PE file',0
+
+  _about_title  TCHAR 'PEmenu',0
+  _error_text   TCHAR 'Error opening file.',0
+  _about_text   TCHAR 'This is a GUI version of PEbasic developed by MatQuasar (aka fliermate) - Apr 2025',0
+  _filename     rb  MAX_PATH
 
 section '.idata' import data readable writeable
 
@@ -130,10 +226,12 @@ section '.rsrc' resource data readable
            1,LANG_NEUTRAL,version
 
   dialog main_dialog,'PEmenu',100,100,400,80,WS_CAPTION+WS_POPUP+WS_SYSMENU+DS_MODALFRAME,0,IDR_MENU
-     dialogitem 'STATIC','File: ',-1,10,10,70,65,WS_VISIBLE
+     dialogitem 'STATIC','File: ',-1,10,10,70,15,WS_VISIBLE
      dialogitem 'EDIT','',IDC_FILE,80,10,300,15,WS_VISIBLE+WS_BORDER+WS_TABSTOP+ES_AUTOHSCROLL+ES_READONLY
-     dialogitem 'STATIC','Program Type',-1,10,30,70,95,WS_VISIBLE
-     dialogitem 'EDIT','',IDC_TYPE,80,30,150,15,WS_VISIBLE+WS_BORDER+WS_TABSTOP+ES_AUTOHSCROLL+ES_READONLY
+     dialogitem 'STATIC','Program Bitness',-1,10,30,70,15,WS_VISIBLE
+     dialogitem 'EDIT','',IDC_BITNESS,80,30,150,15,WS_VISIBLE+WS_BORDER+WS_TABSTOP+ES_AUTOHSCROLL+ES_READONLY
+     dialogitem 'STATIC','Program Subsystem',-1,10,50,70,15,WS_VISIBLE
+     dialogitem 'EDIT','',IDC_SUBSYSTEM,80,50,150,15,WS_VISIBLE+WS_BORDER+WS_TABSTOP+ES_AUTOHSCROLL+ES_READONLY
   enddialog
 
   menu main_menu

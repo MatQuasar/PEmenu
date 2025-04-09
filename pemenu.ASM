@@ -107,14 +107,8 @@ proc DialogProc hwnd,wmsg,wparam,lparam
   .done:
         invoke  CloseHandle, dword [_handle]
         jmp     .quit
-  .err0:
-        invoke  MessageBox,[hwnd],_error_text,_about_title,MB_OK
-        jmp     .quit
   .err1:
-;        invoke  WriteFile, dword [_stdout], _msg1, _msglen1, _dummy, 0
-        jmp     .quit
-  .err2:
-;        invoke  WriteFile, dword [_stdout], _msg2, _msglen2, _dummy, 0
+        invoke  MessageBox,[hwnd],_error_text,_about_title,MB_OK
         jmp     .quit
   .err4:
         invoke  CloseHandle, dword [_handle]

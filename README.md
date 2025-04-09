@@ -4,4 +4,6 @@ A GUI version of PEbasic (shows Win32 program type)
 Original console version of PEbasic is here:
 [https://board.flatassembler.net/topic.php?t=23769](https://board.flatassembler.net/topic.php?t=23769)
 
-PEmenu is currently a work in progress.
+![pemenu1](pemenu1.png)
+
+![pemenu2](pemenu2.png)

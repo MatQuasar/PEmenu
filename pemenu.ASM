@@ -212,7 +212,8 @@ section '.rsrc' resource data readable
 
   directory RT_DIALOG,dialogs,\
             RT_MENU,menus, \
-            RT_VERSION,versions
+            RT_VERSION,versions, \
+            24,manifest
 
   resource dialogs,\
            IDD_MAIN,LANG_ENGLISH+SUBLANG_DEFAULT,main_dialog
@@ -222,6 +223,9 @@ section '.rsrc' resource data readable
 
   resource versions,\
            1,LANG_NEUTRAL,version
+
+  resource  manifest,\
+            1, LANG_NEUTRAL, winxp
 
   dialog main_dialog,'PEmenu',100,100,400,80,WS_CAPTION+WS_POPUP+WS_SYSMENU+DS_MODALFRAME,0,IDR_MENU
      dialogitem 'STATIC','File: ',-1,10,10,70,15,WS_VISIBLE
@@ -246,3 +250,29 @@ section '.rsrc' resource data readable
               'FileVersion','1.0',\
               'ProductVersion','1.0',\
               'OriginalFilename','PEMENU.EXE'
+
+resdata winxp
+      ;  file 'manifest.xml'
+db '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',13,10
+db '<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">',13,10
+db '<assemblyIdentity',13,10
+    db 'version="1.0.0.0"',13,10
+    db 'processorArchitecture="X86"',13,10
+    db 'name="CompanyName.ProductName.Application"',13,10
+    db 'type="win32"',13,10
+db  '/>',13,10
+db '<description>Your application description here.</description>',13,10
+db '<dependency>',13,10
+    db '<dependentAssembly>',13,10
+        db '<assemblyIdentity',13,10
+            db 'type="win32"',13,10
+            db  'name="Microsoft.Windows.Common-Controls"',13,10
+            db 'version="6.0.0.0"',13,10
+            db 'processorArchitecture="X86"',13,10
+            db 'publicKeyToken="6595b64144ccf1df"',13,10
+            db 'language="*"',13,10
+       db  '/>',13,10
+    db '</dependentAssembly>',13,10
+db '</dependency>',13,10
+db '</assembly>'
+endres

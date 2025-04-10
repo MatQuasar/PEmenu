@@ -3,6 +3,9 @@
 ;
 ; Dedicated to SherpaSecMy
 ;
+; Version history: v0.01 - Initial release
+;                  v0.02 - Bug fix: DOS EXE wrongly reported as PE file after opening a PE file
+;
 format PE GUI 4.0
 include 'win32a.inc'
 
@@ -67,6 +70,7 @@ proc DialogProc hwnd,wmsg,wparam,lparam
         movzx   ebx, word [_MZ_ID_r]
         cmp     bx, word [_MZ_ID]
         jnz     .err4
+        mov     dword [_PE_ID_r], 0
         invoke  SetFilePointer, dword [_handle], 0x3C, 0, FILE_BEGIN
         invoke  ReadFile, dword [_handle], _PE_start, 4, _dummy, 0
         invoke  SetFilePointer, dword [_handle], dword [_PE_start], 0, FILE_BEGIN

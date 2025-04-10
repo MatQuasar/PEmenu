@@ -6,4 +6,10 @@ Original console version of PEbasic is here:
 
 ![pemenu1](pemenu1.PNG)
 
+![dosbox](dosbox.PNG)
+
 ![pemenu2](pemenu2.PNG)
+
+## New look!
+
+![peguiwinxp](peguiwinxp.PNG)
